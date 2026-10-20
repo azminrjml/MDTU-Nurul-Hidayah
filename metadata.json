@@ -1,0 +1,8 @@
+{
+  "name": "MDTU Nurul Hidayah - Sistem Informasi & Administrasi",
+  "description": "Sistem Informasi & Administrasi Madrasah Diniyah Takmiliyah Ula (MDTU) Nurul Hidayah dengan website profil publik, portal santri & wali, manajemen guru, kelas, absensi, pembayaran SPP kuitansi, nilai, dan rapor digital.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
