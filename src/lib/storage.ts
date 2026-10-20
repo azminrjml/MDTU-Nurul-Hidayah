@@ -16,7 +16,8 @@ import {
   GalleryAlbum,
   AuditLog,
   UserProfile,
-  UserRole
+  UserRole,
+  RoleAccessInfo
 } from '../types';
 
 import {
@@ -89,6 +90,108 @@ export function formatTanggal(dateStr: string): string {
 
 const STORAGE_KEY_PREFIX = 'mdtu_hidayah_';
 
+export const DEFAULT_ROLE_PASSCODES: Record<UserRole, string> = {
+  super_admin: 'admin123',
+  operator: 'operator123',
+  principal: 'kepala123',
+  teacher: 'guru123',
+  treasurer: 'keuangan123',
+  guardian: 'ortu123'
+};
+
+export const ROLE_ACCESS_CONFIG: Record<UserRole, RoleAccessInfo> = {
+  super_admin: {
+    role: 'super_admin',
+    title: 'Super Administrator',
+    category: 'Yayasan & IT',
+    defaultPasscode: 'admin123',
+    landingPage: '/app',
+    description: 'Akses penuh ke seluruh sistem manajemen madrasah, basis data, dan konfigurasi lembaga.',
+    badge: 'Akses Penuh',
+    allowedFeatures: [
+      'Semua modul administrasi',
+      'Kelola Pengguna & Sandi Khusus',
+      'Pengaturan Lembaga & Backup',
+      'Log Audit Keamanan Sistem'
+    ]
+  },
+  operator: {
+    role: 'operator',
+    title: 'Operator Tata Usaha (TU)',
+    category: 'Administrasi',
+    defaultPasscode: 'operator123',
+    landingPage: '/app/students',
+    description: 'Akses pendataan santri baru, rombel kelas, presensi, kurikulum, dan kelola konten berita.',
+    badge: 'Akses Operasional TU',
+    allowedFeatures: [
+      'Buku Induk Santri & Mutasi',
+      'Pembagian Rombel & Asatidz',
+      'Presensi Harian Santri',
+      'Kelola Berita & Galeri Web'
+    ]
+  },
+  principal: {
+    role: 'principal',
+    title: 'Kepala MDTU Nurul Hidayah',
+    category: 'Pimpinan Lembaga',
+    defaultPasscode: 'kepala123',
+    landingPage: '/app',
+    description: 'Akses eksekutif untuk monitoring santri, statistik kehadiran, evaluasi asatidz, dan pengesahan buku rapor.',
+    badge: 'Akses Pimpinan',
+    allowedFeatures: [
+      'Ringkasan Eksekutif & Statistik',
+      'Approval & Pengesahan Buku Rapor',
+      'Supervisi Dewan Asatidz',
+      'Monitoring Rekapitulasi Kas'
+    ]
+  },
+  teacher: {
+    role: 'teacher',
+    title: 'Dewan Asatidz / Guru',
+    category: 'Tenaga Pendidik',
+    defaultPasscode: 'guru123',
+    landingPage: '/app/academics',
+    description: 'Akses khusus untuk pencatatan kehadiran santri (presensi), penginputan nilai harian, dan penyusunan rapor.',
+    badge: 'Akses Akademik Terbatas',
+    allowedFeatures: [
+      'Input Nilai Mapel & Tahfidz',
+      'Pencatatan Presensi Harian Santri',
+      'Penyusunan Catatan Rapor Santri',
+      'Data Santri Binaan Kelas'
+    ]
+  },
+  treasurer: {
+    role: 'treasurer',
+    title: 'Bendahara Keuangan',
+    category: 'Keuangan Madrasah',
+    defaultPasscode: 'keuangan123',
+    landingPage: '/app/billing',
+    description: 'Akses khusus pengelolaan tagihan infaq/SPP bulanan, penerimaan pembayaran tunai/transfer, dan cetak kuitansi.',
+    badge: 'Akses Keuangan Terbatas',
+    allowedFeatures: [
+      'Kelola Tagihan SPP Santri',
+      'Penerimaan Pembayaran & Kuitansi',
+      'Rekapitulasi Arus Kas Madrasah',
+      'Laporan Keuangan & Piutang'
+    ]
+  },
+  guardian: {
+    role: 'guardian',
+    title: 'Orang Tua / Wali Santri',
+    category: 'Wali Santri',
+    defaultPasscode: 'ortu123',
+    landingPage: '/portal',
+    description: 'Akses khusus memantau perkembangan belajar anak, kehadiran, unduh rapor resmi, dan status tagihan SPP.',
+    badge: 'Akses Portal Santri',
+    allowedFeatures: [
+      'Perkembangan & Catatan Santri',
+      'Rekapitulasi Kehadiran Anak',
+      'Unduh / Cetak Buku Rapor Resmi',
+      'Histori Tagihan & Kuitansi SPP'
+    ]
+  }
+};
+
 function getStored<T>(key: string, defaultValue: T): T {
   try {
     const data = localStorage.getItem(STORAGE_KEY_PREFIX + key);
@@ -125,6 +228,121 @@ export class AppStorage {
     this.setCurrentUser(user);
     this.logAudit('USER_ROLE_SWITCH', 'USER', user.id, { switched_to_role: role });
     return user;
+  }
+
+  // Passcodes & Security
+  static getRolePasscodes(): Record<UserRole, string> {
+    return getStored<Record<UserRole, string>>('role_passcodes', DEFAULT_ROLE_PASSCODES);
+  }
+
+  static saveRolePasscodes(passcodes: Record<UserRole, string>): void {
+    setStored('role_passcodes', passcodes);
+    this.logAudit('UPDATE_ROLE_PASSCODES', 'SYSTEM_SECURITY', 'role_passcodes', { updated_at: new Date().toISOString() });
+  }
+
+  static getRolePasscode(role: UserRole): string {
+    const passcodes = this.getRolePasscodes();
+    return passcodes[role] || DEFAULT_ROLE_PASSCODES[role];
+  }
+
+  static updateRolePasscode(role: UserRole, passcode: string): void {
+    const passcodes = this.getRolePasscodes();
+    passcodes[role] = passcode;
+    this.saveRolePasscodes(passcodes);
+  }
+
+  static resetRolePasscodes(): void {
+    this.saveRolePasscodes(DEFAULT_ROLE_PASSCODES);
+  }
+
+  static getRoleLandingPage(role: UserRole): string {
+    return ROLE_ACCESS_CONFIG[role]?.landingPage || '/app';
+  }
+
+  static isLoggedIn(): boolean {
+    return getStored<boolean>('is_logged_in', true);
+  }
+
+  static logout(): void {
+    setStored('is_logged_in', false);
+    this.logAudit('USER_LOGOUT', 'AUTH', this.getCurrentUser().id, { timestamp: new Date().toISOString() });
+  }
+
+  static loginWithRole(role: UserRole, inputPasscode?: string): { success: boolean; message: string; landingPage: string } {
+    const correctPasscode = this.getRolePasscode(role);
+    if (inputPasscode && inputPasscode.trim() !== correctPasscode.trim()) {
+      return {
+        success: false,
+        message: `Sandi khusus untuk ${ROLE_ACCESS_CONFIG[role]?.title} tidak sesuai. Silakan coba lagi.`,
+        landingPage: this.getRoleLandingPage(role)
+      };
+    }
+
+    setStored('is_logged_in', true);
+    this.switchUserRole(role);
+    return {
+      success: true,
+      message: 'Berhasil masuk ke sistem!',
+      landingPage: this.getRoleLandingPage(role)
+    };
+  }
+
+  static isPathAllowedForRole(role: UserRole, path: string): boolean {
+    if (role === 'super_admin') return true;
+
+    // Guardian can only access /portal
+    if (role === 'guardian') {
+      return path.startsWith('/portal');
+    }
+
+    // Staff cannot access guardian portal
+    if (path.startsWith('/portal')) {
+      return false;
+    }
+
+    // Common routes in /app allowed for all internal staff
+    if (path === '/app' || path === '/app/') return true;
+
+    if (path === '/app/students' || path.startsWith('/app/students/')) {
+      return ['super_admin', 'operator', 'principal', 'teacher', 'treasurer'].includes(role);
+    }
+    if (path === '/app/attendance') {
+      return ['super_admin', 'operator', 'principal', 'teacher'].includes(role);
+    }
+    if (path === '/app/billing') {
+      return ['super_admin', 'principal', 'treasurer'].includes(role);
+    }
+    if (path === '/app/academics') {
+      return ['super_admin', 'operator', 'teacher', 'principal'].includes(role);
+    }
+    if (path === '/app/report-cards') {
+      return ['super_admin', 'operator', 'teacher', 'principal'].includes(role);
+    }
+    if (path === '/app/teachers') {
+      return ['super_admin', 'operator', 'principal'].includes(role);
+    }
+    if (path === '/app/classes') {
+      return ['super_admin', 'operator', 'principal'].includes(role);
+    }
+    if (path === '/app/content') {
+      return ['super_admin', 'operator'].includes(role);
+    }
+    if (path === '/app/audit-logs') {
+      return ['super_admin', 'principal'].includes(role);
+    }
+    if (path === '/app/reports') {
+      return ['super_admin', 'operator', 'principal', 'treasurer'].includes(role);
+    }
+    if (path === '/app/settings') {
+      return role === 'super_admin';
+    }
+
+    return true;
+  }
+
+  static getAllowedRolesForPath(path: string): UserRole[] {
+    const allRoles: UserRole[] = ['super_admin', 'operator', 'principal', 'teacher', 'treasurer', 'guardian'];
+    return allRoles.filter(role => this.isPathAllowedForRole(role, path));
   }
 
   // Audit Logs

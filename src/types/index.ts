@@ -11,6 +11,17 @@ export type UserRole =
   | 'treasurer' 
   | 'guardian';
 
+export interface RoleAccessInfo {
+  role: UserRole;
+  title: string;
+  category: string;
+  defaultPasscode: string;
+  landingPage: string;
+  description: string;
+  badge: string;
+  allowedFeatures: string[];
+}
+
 export interface Institution {
   id: string;
   name: string;

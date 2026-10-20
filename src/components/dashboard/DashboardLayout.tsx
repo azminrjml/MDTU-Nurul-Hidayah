@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { AppStorage } from '../../lib/storage';
 import { UserRole } from '../../types';
+import { AccessRestrictedNotice } from '../common/AccessRestrictedNotice';
 
 interface DashboardLayoutProps {
   currentPath: string;
@@ -42,14 +43,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentPath, o
   const handleRoleChange = (newRole: UserRole) => {
     AppStorage.switchUserRole(newRole);
     setRoleMenuOpen(false);
-    if (newRole === 'guardian') {
-      onNavigate('/portal');
-    } else {
-      onNavigate('/app');
-    }
+    const landing = AppStorage.getRoleLandingPage(newRole);
+    onNavigate(landing);
   };
 
   const handleLogout = () => {
+    AppStorage.logout();
     onNavigate('/login');
   };
 
@@ -238,7 +237,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentPath, o
 
         {/* Page Content */}
         <main className="p-4 sm:p-6 lg:p-8 flex-1">
-          {children}
+          {AppStorage.isPathAllowedForRole(activeRole, currentPath) ? (
+            children
+          ) : (
+            <AccessRestrictedNotice currentPath={currentPath} onNavigate={onNavigate} />
+          )}
         </main>
       </div>
     </div>
